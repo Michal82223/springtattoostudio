@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visit Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<div class="container my-5 py-5">
+  <h1 class="text-center py-4">Spring Tattoo Studio</h1>
+  <h2 class="text-center">Formularz wizyt</h2>
+
+  <div class="d-flex flex-column align-items-center">
+    <form id="visitForm" class="mb-4 w-50">
+      <div class="mb-3">
+        <label for="name" class="form-label">Imię</label>
+        <input type="text" class="form-control" id="name" required>
+      </div>
+      <div class="mb-3">
+        <label for="surname" class="form-label">Nazwisko</label>
+        <input type="text" class="form-control" id="surname" required>
+      </div>
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="email" required>
+      </div>
+<!--      <div class="mb-3">-->
+<!--        <label for="visit_type" class="form-label">Temat wizyty</label>-->
+<!--        <input type="text" class="form-control" id="visit_type" required>-->
+<!--      </div>-->
+      <div class="mb-3">
+        <label for="visit_type" class="form-label">Temat wizyty</label>
+        <select class="form-control" id="visit_type" name="visit_type" value="" required>
+          <option value="Konsultacja">Konsultacja</option>
+          <option value="Tatuaż">Tatuaż</option>
+          <option value="Usunięcie tatuażu">Usunięcie tatuażu</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="visit_date" class="form-label">Termin wizyty</label>
+        <input type="date" class="form-control" id="visit_date" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg w-100 my-2">Dodaj wizytę</button>
+      <a class="btn btn-outline-primary btn-lg w-100" href="/" role="button">Anuluj</a>
+    </form>
+  </div>
+
+  <h2 class="text-center">Lista wizyt</h2>
+
+  <table class="table table-sm text-center align-middle table-striped table-bordered my-4">
+    <thead>
+    <tr class="table-dark">
+      <th>ID</th>
+      <th>Imię</th>
+      <th>Nazwisko</th>
+      <th>Email</th>
+      <th>Temat wizyty</th>
+      <th>Termin wizyty</th>
+      <th>Akcje</th>
+    </tr>
+    </thead>
+    <tbody id="visitTable">
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const visitForm = document.getElementById('visitForm');
+  const visitTable = document.getElementById('visitTable');
+  let editingVisitId = null; // ID użytkownika w trybie edycji
+
+  function fetchVisits() {
+    axios.get('/api/visits').then(response => {
+      const visits = response.data;
+      visitTable.innerHTML = '';
+      visits.forEach(visit => {
+        visitTable.innerHTML += `
+                    <tr>
+                        <td>${visit.id}</td>
+                        <td>${visit.name}</td>
+                        <td>${visit.surname}</td>
+                        <td>${visit.email}</td>
+                        <td>${visit.visit_type}</td>
+                        <td>${visit.visit_date}</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="editVisit(${visit.id})">Edytuj <i class="bi bi-pen-fill"></i></button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteVisit(${visit.id})">Usuń <i class="bi bi-trash3-fill"></i></button>
+                        </td>
+                    </tr>`;
+      });
+    });
+  }
+
+  function deleteVisit(id) {
+    axios.delete(`/api/visits/${id}`).then(() => fetchVisits());
+  }
+
+  function editVisit(id) {
+    // Pobierz dane użytkownika i wypełnij formularz
+    axios.get(`/api/visits`).then(response => {
+      const visit = response.data.find(u => u.id === id);
+      if (visit) {
+        document.getElementById('name').value = visit.name;
+        document.getElementById('surname').value = visit.surname;
+        document.getElementById('email').value = visit.email;
+        document.getElementById('visit_type').value = visit.visit_type;
+        document.getElementById('visit_date').value = visit.visit_date;
+        editingVisitId = visit.id; // Ustaw ID użytkownika w trybie edycji
+      }
+    });
+  }
+
+  visitForm.addEventListener('submit', event => {
+    event.preventDefault();
+    const visit = {
+      name: document.getElementById('name').value,
+      surname: document.getElementById('surname').value,
+      email: document.getElementById('email').value,
+      visit_type: document.getElementById('visit_type').value,
+      visit_date: document.getElementById('visit_date').value
+    };
+
+    if (editingVisitId) {
+      // Aktualizacja użytkownika
+      axios.put(`/api/visits/${editingVisitId}`, visit).then(() => {
+        visitForm.reset();
+        editingVisitId = null;
+        fetchVisits();
+      });
+    } else {
+      // Dodawanie nowego użytkownika
+      axios.post('/api/visits', visit).then(() => {
+        visitForm.reset();
+        fetchVisits();
+      });
+    }
+  });
+
+  fetchVisits();
+</script>
+
+</body>
+</html>
